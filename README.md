@@ -5,7 +5,7 @@
 ## 用法
 
 ```javascript
-var ncov = new ncovdata("#ncovnews");// 传入需要显示数据列表的位置,必须是div元素。
+var ncov = new ncovData("#ncovnews");// 传入需要显示数据列表的位置,必须是div元素。
 ncov.run();
 ```
 
