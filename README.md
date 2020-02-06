@@ -2,10 +2,23 @@
 在网页中实时显示全国的新型冠状病毒肺炎疫情数据。数据来自[360](https://arena.360.cn/docs/wuhan_pneumonia/).
 [效果预览](https://blog.ckylin.site/talks/wuhanlinks.md)
 
-## 用法
+## 基本用法
 
 ```javascript
 var ncov = new ncovData("#ncovnews");// 传入需要显示数据列表的位置,必须是div元素。
+ncov.run();
+```
+
+## 选项参数
+
+```javascript
+var ncov = new ncovData("#ncovnews",{
+	autoRefresh: true, // 自动间隔刷新
+	refreshTime: 60000*5, // 刷新时间间隔(ms)(需要autoRefresh)
+	refreshOnFocus: true, // 切换到页面时自动刷新
+	handleCopyEvent: true, // 修改复制数据
+	appendOnCopy: "\r\n\r\n 来自【%title%】 - %link%" // 复制数据时的附加文本(需要handleCopyEvent)
+});
 ncov.run();
 ```
 
