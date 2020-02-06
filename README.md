@@ -14,7 +14,7 @@ ncov.run();
 ```javascript
 var ncov = new ncovData("#ncovnews",{
 	autoRefresh: true, // 自动间隔刷新
-	refreshTime: 60000*5, // 刷新时间间隔(ms)(需要autoRefresh)
+	refreshTime: 30000, // 刷新时间间隔(ms)(需要autoRefresh)
 	refreshOnFocus: true, // 切换到页面时自动刷新
 	handleCopyEvent: true, // 修改复制数据
 	appendOnCopy: "\r\n\r\n 来自【%title%】 - %link%" // 复制数据时的附加文本(需要handleCopyEvent)
