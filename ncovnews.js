@@ -168,8 +168,10 @@ function ncovData(el,settings) {
         if (that.getncovnewsDom() === false) return;
         that.loadData();
         that.doGetNCOVNews();
-        that.ncovnews_loop = setInterval(that.doGetNCOVNews, that.refreshTime);
-        console.log('started');
+        if(that.autoRefresh){
+            that.ncovnews_loop = setInterval(that.doGetNCOVNews, that.refreshTime);
+            console.log('started');
+        }
     }
     this.stopRefreshLoop = function () {
             if (this.ncovnews_loop != null) {
@@ -305,12 +307,15 @@ function ncovData(el,settings) {
     this.run = function () {
         if (!this.autoRefresh) {
             this.doGetNCOVNews();
+            if (this.refreshOnFocus) {
+                window.onfocus = this.doGetNCOVNews;
+            }
         } else {
             this.startRefreshLoop();
-        }
-        if (this.refreshOnFocus) {
-            window.onfocus = this.startRefreshLoop;
-            window.onblue = this.stopRefreshLoop;
+            if (this.refreshOnFocus) {
+                window.onfocus = this.startRefreshLoop;
+                window.onblur = this.stopRefreshLoop;
+            }
         }
         if (this.handleCopyEvent) {
             var dom = this.getncovnewsDom();
