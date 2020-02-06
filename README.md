@@ -4,11 +4,10 @@
 
 ## 用法
 
-需要在页面中想放置数据列表的位置提前插入:
-```html
-<div id="ncovnews">loading...</div>
+```javascript
+var ncov = new ncovdata("#ncovnews");// 传入需要显示数据列表的位置,必须是div元素。
+ncov.run();
 ```
-并引入ncovnews.js即可。
 
 ## 说明
 
