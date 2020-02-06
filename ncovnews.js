@@ -26,6 +26,7 @@ function ncovData(el,settings) {
     this.refreshTime = settings.refreshTime === undefined ? 60000 : parseInt(settings.refreshTime);
     this.handleCopyEvent = settings.handleCopyEvent === undefined ? true : !!settings.handleCopyEvent;
     this.appendOnCopy = settings.appendOnCopy === undefined ? "\r\n\r\n 来自[%title%]\r\n%link%" : settings.appendOnCopy;
+    this.ncovnews_toggle = settings.defaultShowDetails === undefined ? 1 : (settings.defaultShowDetails == true ? 2 : 1);
 
 	this.strReplaceAll = function (str,search,replace){
 		return str.replace(new RegExp(search, "gm"), replace);
@@ -296,9 +297,6 @@ function ncovData(el,settings) {
         return str;
     }
     this.regToggle = function (e) { 
-        if (!this.ncovnews_toggle) {
-            this.ncovnews_toggle = 1;
-        }
         e.onclick = this.toggleListFunc;
         this.toggleListFunc(true);
         e.title = "点击查看地区详情";
