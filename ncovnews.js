@@ -5,17 +5,28 @@
  * @description 一个用于实时获取武汉疫情最新信息并展示的js。新闻源来自360。
  * @version 1.6
  */
-function ncovData(el) {
+function ncovData(el,settings) {
     if (el instanceof String) { 
         el = document.querySelector(el);
     }
 	if(!el instanceof HTMLDivElement){
 		console.error("[ncovdata] Parameter must be a DIV element!");
 		return false;
-	}
+    }
+    const that = this;
 	this.root = el;
     this.ncovnews_ver = "1.6 beta";
     this.ncovnews_Lastdata = null;
+
+    if (!(settings instanceof Object)) {
+        settings = {};
+    }
+    this.autoRefresh = settings.autoRefresh===undefined?true:!!settings.autoRefresh; 
+    this.refreshOnFocus = settings.refreshOnFocus === undefined ? true : !!settings.refreshOnFocus; 
+    this.refreshTime = settings.refreshTime === undefined ? 60000 : parseInt(settings.refreshTime);
+    this.handleCopyEvent = settings.handleCopyEvent === undefined ? true : !!settings.handleCopyEvent;
+    this.appendOnCopy = settings.appendOnCopy === undefined ? "\r\n\r\n 来自[%title%]\r\n%link%" : settings.appendOnCopy;
+
 	this.strReplaceAll = function (str,search,replace){
 		return str.replace(new RegExp(search, "gm"), replace);
 	}
@@ -51,82 +62,87 @@ function ncovData(el) {
         if (tip) tip.innerHTML = "正在刷新...";
         var url = "https://arena.360.cn/api/service/data/ncov-live-3";
         fetch(url)
-            .then(response => response.json(), err => {
-                var el = this.getncovnewsDom();
-                if (!el) {
-                    return;
-                }
+            .then(response => response.json(), this.handleFailedData)
+            .then(this.handleSuccessData)
+    }
+    this.handleFailedData = function (err) {
+        var el = that.getncovnewsDom();
+        if (!el) {
+            return;
+        }
 
-                var tip = document.querySelector("#ncovnews-refreshBtn");
-                if (tip) tip.innerHTML = "<font color=red>刷新失败 (-1)</font>";
-                else el.innerHTML = "<center><font color=red>获取疫情信息失败 (-1)</font><br><small><font color=grey>请确保您的访问地点在大陆</font></small></center>";
-            })
-            .then((res) => {
-                var el = this.getncovnewsDom();
-                if (!el) {
-                    return;
-                }
-                if (res.success !== true) {
-                    var tip = document.querySelector("#refreshWH");
-                    if (tip) tip.innerHTML = "<font color=red>刷新失败 (-2)</font>";
-                    else el.innerHTML = "<center><font color=red>获取疫情信息失败 (-2)</font><br><small><font color=grey>信息源不可用</font></small></center>";
-                    return;
-                }
-                var date = new Date();
-                res.time = date.valueOf();
-                if (this.ncovnews_Lastdata == null) this.ncovnews_Lastdata = res;
-                el.innerHTML = "<div id='refreshWH'>刷新于 " + this.getNowStr() + "<div>";
-                var d = res.data.detail;
-                var ld = this.ncovnews_Lastdata.data.detail;
-                var t = res.data.total;
-                var lt = this.ncovnews_Lastdata.data.total;
-                var title = document.createElement("li");
-                title.className = "ncovnews-title";
-                title.style.listStyle = "none";
-                title.innerHTML = "<div class='ncovnews-datablock'><b>地区</b></div> <div class='ncovnews-datablock'>确诊</div> <div class='ncovnews-datablock'>疑似</div> <div class='ncovnews-datablock'>治愈</div> <div class='ncovnews-datablock'>死亡</div>";
-                el.appendChild(title);
-                var totalel = this.newCity("<span class='ncovnews-big'>共计</span>", t.diagnosed == lt.diagnosed ? t.diagnosed : t.diagnosed + this.wh_c(t.diagnosed - lt.diagnosed), t.suspected == lt.suspected ? t.suspected : t.suspected + this.wh_c(t.suspected - lt.suspected), t.cured == lt.cured ? t.cured : t.cured + this.wh_c(t.cured - lt.cured), t.died == lt.died ? t.died : t.died + this.wh_c(t.died - lt.died), "ncovnews-totalline");
-                totalel.style.listStyle = "none";
-                el.appendChild(totalel);
-                // var ul = document.createElement("ul");
-                var ul = document.createElement("div");
-                ul.id = "ncovnews-list";
-                d.forEach((i, index) => {
-                    var li = ld.find((item) => {
-                        return item.id == i.id
-                    });
-                    if (li == undefined) li = {
-                        diagnosed: 0,
-                        suspected: 0,
-                        cured: 0,
-                        died: 0
-                    };
-                    ul.appendChild(this.newCity(
-                        i.city,
-                        i.diagnosed == li.diagnosed ? i.diagnosed : i.diagnosed + this.wh_c(i.diagnosed - li.diagnosed),
-                        i.suspected == li.suspected ? i.suspected : i.suspected + this.wh_c(i.suspected - li.suspected),
-                        i.cured == li.cured ? i.cured : i.cured + this.wh_c(i.cured - li.cured),
-                        i.died == li.died ? i.died : i.died + this.wh_c(i.died - li.died),
-                    ));
-                });
-                el.appendChild(ul);
+        var tip = document.querySelector("#ncovnews-refreshBtn");
+        if (tip) tip.innerHTML = "<font color=red>刷新失败 (-1)</font>";
+        else el.innerHTML = "<center><font color=red>获取疫情信息失败 (-1)</font><br><small><font color=grey>请确保您的访问地点在大陆</font></small></center>";
+    }
+    this.handleSuccessData = function (res) {
+        var el = that.getncovnewsDom();
+        if (!el) {
+            return;
+        }
+        if (res.success !== true) {
+            var tip = document.querySelector("#refreshWH");
+            if (tip) tip.innerHTML = "<font color=red>刷新失败 (-2)</font>";
+            else el.innerHTML = "<center><font color=red>获取疫情信息失败 (-2)</font><br><small><font color=grey>信息源不可用</font></small></center>";
+            return;
+        }
+        var date = new Date();
+        res.time = date.valueOf();
+        if (that.ncovnews_Lastdata == null) that.ncovnews_Lastdata = res;
+        if (that.ncovnews_Lastdata.time && (
+                that.ncovnews_Lastdata.time != res.time
+        ) &&
+            (!that.dataEquals(that.ncovnews_Lastdata.data, res.data))
+        ) {
+            el.innerHTML = "<div id='refreshWH'>刷新于 " + that.getNowStr() + "<br><small>对比上次数据: " + that.getTimeDiff(that.ncovnews_Lastdata.time, res.time) + "</small><div>";
+        } else el.innerHTML = "<div id='refreshWH'>刷新于 " + that.getNowStr() + "<div>";
+        var d = res.data.detail;
+        var ld = that.ncovnews_Lastdata.data.detail;
+        var t = res.data.total;
+        var lt = that.ncovnews_Lastdata.data.total;
+        var title = document.createElement("li");
+        title.className = "ncovnews-title";
+        title.style.listStyle = "none";
+        title.innerHTML = "<div class='ncovnews-datablock'><b>地区</b></div> <div class='ncovnews-datablock'>确诊</div> <div class='ncovnews-datablock'>疑似</div> <div class='ncovnews-datablock'>治愈</div> <div class='ncovnews-datablock'>死亡</div>";
+        el.appendChild(title);
+        var totalel = that.newCity("<span class='ncovnews-big'>共计</span>", t.diagnosed == lt.diagnosed ? t.diagnosed : t.diagnosed + that.wh_c(t.diagnosed - lt.diagnosed), t.suspected == lt.suspected ? t.suspected : t.suspected + that.wh_c(t.suspected - lt.suspected), t.cured == lt.cured ? t.cured : t.cured + that.wh_c(t.cured - lt.cured), t.died == lt.died ? t.died : t.died + that.wh_c(t.died - lt.died), "ncovnews-totalline");
+        totalel.style.listStyle = "none";
+        el.appendChild(totalel);
+        // var ul = document.createElement("ul");
+        var ul = document.createElement("div");
+        ul.id = "ncovnews-list";
+        d.forEach((i, index) => {
+            var li = ld.find((item) => {
+                return item.id == i.id
+            });
+            if (li == undefined) li = {
+                diagnosed: 0,
+                suspected: 0,
+                cured: 0,
+                died: 0
+            };
+            ul.appendChild(that.newCity(
+                i.city,
+                i.diagnosed == li.diagnosed ? i.diagnosed : i.diagnosed + that.wh_c(i.diagnosed - li.diagnosed),
+                i.suspected == li.suspected ? i.suspected : i.suspected + that.wh_c(i.suspected - li.suspected),
+                i.cured == li.cured ? i.cured : i.cured + that.wh_c(i.cured - li.cured),
+                i.died == li.died ? i.died : i.died + that.wh_c(i.died - li.died),
+            ));
+        });
+        el.appendChild(ul);
 
-                this.regToggle(totalel);
-                var shengming = document.createElement("div");
-                shengming.id = "ncovnews-shengming";
-                shengming.innerHTML = "信息来自 <a href='https://arena.360.cn/docs/wuhan_pneumonia/'>新型全国疫情实时动态(360.cn)</a><br>实时显示脚本来自 <a href='https://blog.ckylin.site/talks/wuhanlinks.md'>CKylin.Blog</a><br>ncovnews.js ver " + ncovnews_ver;
-                el.appendChild(shengming);
-                var tip = document.querySelector("#refreshWH");
-                if (tip) tip.onclick = doGetWuhanNews;
-                this.ncovnews_Lastdata = res;
-                this.saveData(res);
-            })
+        that.regToggle(totalel);
+        var shengming = document.createElement("div");
+        shengming.id = "ncovnews-shengming";
+        shengming.innerHTML = "信息来自 <a href='https://arena.360.cn/docs/wuhan_pneumonia/'>新型全国疫情实时动态(360.cn)</a><br>实时显示脚本来自 <a href='https://blog.ckylin.site/talks/wuhanlinks.md'>CKylin.Blog</a><br>ncovnews.js ver " + that.ncovnews_ver;
+        el.appendChild(shengming);
+        var tip = document.querySelector("#refreshWH");
+        if (tip) tip.onclick = that.doGetNCOVNews;
+        that.ncovnews_Lastdata = res;
+        that.saveData(res);
     }
     this.wh_c = function (str) {
         return " <span class='ncovnews-changes'>(+" + str + ")</span>";
-    }
-    this.doncovnewsRefresh = function () {
-        this.doGetNCOVNews();
     }
     this.startRefreshLoop = function () {
         if (!document.querySelector("#ncovnews-styles")) {
@@ -149,10 +165,10 @@ function ncovData(el) {
                 "#ncovnews-shengming{font-size:small;text-align:center}";
             document.head.appendChild(css);
         }
-        if (this.getncovnewsDom() === false) return;
-        this.loadData();
-        this.doGetNCOVNews();
-        this.ncovnews_loop = setInterval(this.doncovnewsRefresh, 30000);
+        if (that.getncovnewsDom() === false) return;
+        that.loadData();
+        that.doGetNCOVNews();
+        that.ncovnews_loop = setInterval(that.doGetNCOVNews, that.refreshTime);
         console.log('started');
     }
     this.stopRefreshLoop = function () {
@@ -186,16 +202,16 @@ function ncovData(el) {
         if (tip) {
             beforeText = tip.innerText.replace("刷新", "数据更新") + "\r\n\r\n";
         } else {
-            beforeText = "数据更新于" + this.getNowStr() + "\r\n\r\n";
+            beforeText = "数据更新于" + that.getNowStr() + "\r\n\r\n";
         }
-        var appendLink = "\r\n\r\n 数据来自[" + document.title + "]\r\n" + location.href;
+        var appendLink = that.strReplaceAll(that.strReplaceAll(that.appendOnCopy, "%title%", document.title), "%link%", location.href);
         if (window.clipboardData) { // Internet Explorer
             var copytext = beforeText + selection + appendLink;
             window.clipboardData.setData("Text", copytext);
             return false;
         } else {
             var copytext = beforeText + selection + appendLink;
-            copytext = this.strReplaceAll(this.strReplaceAll(copytext, "\r\n", "<br>"), "!return!", "<br>");
+            copytext = that.strReplaceAll(that.strReplaceAll(copytext, "\r\n", "<br>"), "!return!", "<br>");
             var newdiv = document.createElement('div');
             newdiv.style.position = 'absolute';
             newdiv.style.left = '-99999px';
@@ -229,6 +245,54 @@ function ncovData(el) {
             list.style.height = "0px";
         }
     }
+    this.dataEquals = function (obj1, obj2) {
+        return JSON.stringify(obj1) == JSON.stringify(obj2);
+    }
+    this.getTimeDiff = function (t,n) {
+        // 准备
+        if (!(t instanceof Date)) {
+            t = new Date(t);
+        }
+        if (!n) {
+            n = new Date();
+        }
+        if (!(n instanceof Date)) {
+            n = new Date(n);
+        }
+
+        var str = "";
+
+        // 获取
+        var ty = t.getYear() + 1900;
+        var tm = t.getMonth() + 1;
+        var td = t.getDate();
+        var th = t.getHours();
+        var tmi = t.getMinutes();
+        var ts = t.getSeconds();
+        var ny = n.getYear() + 1900;
+        var nm = n.getMonth() + 1;
+        var nd = n.getDate();
+        var nh = n.getHours();
+        var nmi = n.getMinutes();
+        var ns = n.getSeconds();
+        
+        if (ty != ny) {
+            str += ty > ny ? (ty - ny) + "年后" : (ny - ty) + "年前";
+        } else if (tm != nm) {
+            str += tm > nm ? (tm - nm) + "个月后" : (nm - tm) + "个月前";
+        } else if (td != nd) {
+            str += td > nd ? (td - nd) + "天后" : (nd - td) + "天前";
+        } else if (th != nh) {
+            str += th > nh ? (th - nh) + "小时后" : (nh - th) + "小时前";
+        } else if (tmi != nmi) {
+            str += tmi > nmi ? (tmi - nmi) + "分钟后" : (nmi - tmi) + "分钟前";
+        } else if (ts != ns) {
+            str += ts > ns ? (ts - ns) + "秒后" : (ns - ts) + "秒前";
+        } else {
+            str += "刚刚";
+        }
+        return str;
+    }
     this.regToggle = function (e) { 
         if (!this.ncovnews_toggle) {
             this.ncovnews_toggle = 1;
@@ -239,12 +303,20 @@ function ncovData(el) {
         e.style.cursor = "pointer";
     }
     this.run = function () {
-        window.onfocus = this.startRefreshLoop;
-        window.onblue = this.stopRefreshLoop;
-        this.startRefreshLoop();
-        var dom = this.getncovnewsDom();
-        if (dom) {
-            dom.oncopy = this.handleClipboardEvent;
+        if (!this.autoRefresh) {
+            this.doGetNCOVNews();
+        } else {
+            this.startRefreshLoop();
+        }
+        if (this.refreshOnFocus) {
+            window.onfocus = this.startRefreshLoop;
+            window.onblue = this.stopRefreshLoop;
+        }
+        if (this.handleCopyEvent) {
+            var dom = this.getncovnewsDom();
+            if (dom) {
+                dom.oncopy = this.handleClipboardEvent;
+            }
         }
     }
 }
