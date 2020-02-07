@@ -3,7 +3,7 @@
  * 
  * @author CKylinMC
  * @description 一个用于实时获取武汉疫情最新信息并展示的js。新闻源来自360。
- * @version 1.6
+ * @version 1.7
  */
 function ncovData(el,settings) {
     if (el instanceof String) { 
@@ -15,7 +15,7 @@ function ncovData(el,settings) {
     }
     const that = this;
 	this.root = el;
-    this.ncovnews_ver = "1.6 beta";
+    this.ncovnews_ver = "1.7 beta";
     this.ncovnews_Lastdata = null;
 
     if (!(settings instanceof Object)) {
@@ -109,9 +109,53 @@ function ncovData(el,settings) {
         var totalel = that.newCity("<span class='ncovnews-big'>共计</span>", t.diagnosed == lt.diagnosed ? t.diagnosed : t.diagnosed + that.wh_c(t.diagnosed - lt.diagnosed), t.suspected == lt.suspected ? t.suspected : t.suspected + that.wh_c(t.suspected - lt.suspected), t.cured == lt.cured ? t.cured : t.cured + that.wh_c(t.cured - lt.cured), t.died == lt.died ? t.died : t.died + that.wh_c(t.died - lt.died), "ncovnews-totalline");
         totalel.style.listStyle = "none";
         el.appendChild(totalel);
+        
+        if(res.data.timeline){
+        	var yesterday = new Date(date.getTime()-24*60*60*1000*1);
+        	var l_y = yesterday.getYear() + 1900;
+			var l_m = yesterday.getMonth() + 1;
+			if(l_m<10)l_m = "0"+l_m;
+			var l_d = yesterday.getDate();
+			if(l_d<10)l_d = "0"+l_d;
+			var yesterday_str = l_y+"-"+l_m+"-"+l_d;
+        	// var l = that.getFirstChild(res.data.timeline);
+        	var l = res.data.timeline[yesterday_str];
+        	var compyel = that.newCity("较昨日",
+        		"+" + (t.diagnosed - l.diagnosed),
+        		"+" + (t.suspected - l.suspected),
+        		"+" + (t.cured - l.cured),
+        		"+" + (t.died - l.died),
+        		"ncov-small"
+        	);
+        	compyel.style.listStyle = "none";
+        	el.appendChild(compyel);
+        	
+        	
+        	var beforeYes = new Date(date.getTime()-24*60*60*1000*2);
+        	var b_y = beforeYes.getYear() + 1900;
+			var b_m = beforeYes.getMonth() + 1;
+			if(b_m<10)b_m = "0"+b_m;
+			var b_d = beforeYes.getDate();
+			if(b_d<10)b_d = "0"+b_d;
+			var beforeYes_str = b_y+"-"+b_m+"-"+b_d;
+        	// var l = that.getFirstChild(res.data.timeline);
+        	var b = res.data.timeline[beforeYes_str];
+        	var compbel = that.newCity("昨日增加",
+        		"+" + (l.diagnosed - b.diagnosed),
+        		"+" + (l.suspected - b.suspected),
+        		"+" + (l.cured - b.cured),
+        		"+" + (l.died - b.died),
+        		"ncov-small"
+        	);
+        	compbel.style.listStyle = "none";
+        	el.appendChild(compbel);
+        }
         // var ul = document.createElement("ul");
         var ul = document.createElement("div");
         ul.id = "ncovnews-list";
+    	var line = document.createElement("hr");
+    	line.className = "ncov-hr";
+    	ul.appendChild(line);
         d.forEach((i, index) => {
             var li = ld.find((item) => {
                 return item.id == i.id
@@ -152,7 +196,7 @@ function ncovData(el,settings) {
             css.innerHTML = "#ncovnews{display:block;margin:0 auto;width: max-content;}" +
                 "#refreshWH{text-align:center;cursor:pointer}#refreshWH:hover{color:grey;}" +
                 ".ncovnews-city:hover{background:rgba(0,0,0,.18)}" +
-                ".ncovnews-totalline *{font-size:x-large;margin-top:12px;margin-bottom:12px;}" +
+                ".ncovnews-totalline *{font-size:x-large;margin-top:12px;margin-bottom:3px;}" +
                 "#ncovnews-list {list-style:none;display:block;overflow:hidden;height:0;transition:.3s;}" +
                 ".ncovnews-invs{display:inline-block;font-size:0;}" +
                 ".ncovnews-changes{font-size:smaller;text-decoration:underline}" +
@@ -163,6 +207,8 @@ function ncovData(el,settings) {
                 ".ncovnews-dia{color:red}" +
                 ".ncovnews-sus{color:orange}" +
                 ".ncovnews-cur{color:green}" +
+                ".ncov-small{font-size:small!important;}" +
+                ".ncov-hr{border: 0 none;margin: 5px auto 5px!important;display: block;width: 30%;border-top: 3px solid #dededc;}" +
                 "#ncovnews-shengming{font-size:small;text-align:center}";
             document.head.appendChild(css);
         }
