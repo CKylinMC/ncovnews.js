@@ -5,7 +5,7 @@
  * @description 一个用于实时获取武汉疫情最新信息并展示的js。新闻源来自360。
  * @version 1.7
  */
-function ncovData(el,settings) {
+var ncovData = function (el,settings) {
     if (typeof el === "string") { 
         el = document.querySelector(el);
     }
@@ -344,6 +344,8 @@ function ncovData(el,settings) {
         e.style.cursor = "pointer";
     }
     this.run = function () {
+    	var el = this.getncovnewsDom();
+    	if(el) el.style.textAlign = "center";
         if (!this.autoRefresh) {
             this.doGetNCOVNews();
             if (this.refreshOnFocus) {
