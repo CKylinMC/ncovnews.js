@@ -6,7 +6,7 @@
  * @version 1.7
  */
 function ncovData(el,settings) {
-    if (el instanceof String) { 
+    if (typeof el === "string") { 
         el = document.querySelector(el);
     }
 	if(!el instanceof HTMLDivElement){
@@ -32,12 +32,7 @@ function ncovData(el,settings) {
 		return str.replace(new RegExp(search, "gm"), replace);
 	}
 	this.getncovnewsDom = function () {
-    	var el = document.querySelector("#ncovnews");
-    	if (!el) {
-        	console.error("没有找到数据容器");
-        	return false;
-    	}
-    	return el;
+		return that.root;
     }
     this.newCity = function (name, dia, sus, cur, die, extra) {
         var city = document.createElement("li");
@@ -279,18 +274,18 @@ function ncovData(el,settings) {
         if (!list) return;
         var calcedHeight = list.scrollHeight;
         if (init === true) {
-            if (this.ncovnews_toggle == 1) {
+            if (that.ncovnews_toggle == 1) {
                 list.style.height = "0px";
             } else {
                 list.style.height = calcedHeight + "px";
             }
             return;
         }
-        if (this.ncovnews_toggle == 1) {
-            this.ncovnews_toggle = 2;
+        if (that.ncovnews_toggle == 1) {
+            that.ncovnews_toggle = 2;
             list.style.height = calcedHeight + "px";
         } else {
-            this.ncovnews_toggle = 1;
+            that.ncovnews_toggle = 1;
             list.style.height = "0px";
         }
     }
